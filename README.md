@@ -3,7 +3,8 @@ For any social media app I have created the Twitter as I was currently working o
 
 Given an `app.js` file and a database file `twitterClone.db` consisting of five tables `user`, `follower`, `tweet`, `reply`, and `like`.
 
-Write APIs to perform operations on the tables `user`, `follower`, `tweet`, `reply`, and `like, unlike` containing the following columns,
+Write APIs to perform operations on the tables `user`, `follower`, `tweet`, `reply`, and `like` containing the following columns,
+***NOTE: Unlikes should be working properly when added to the db table.***
 
 **User Table**
 
