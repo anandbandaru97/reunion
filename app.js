@@ -73,15 +73,6 @@ const convertLikeDbObjectToResponseObject = (dbObject) => {
   };
 };
 
-const convertUnlikeDbObjectToResponseObject = (dbObject) => {
-  return {
-    unlikeId: dbObject.unlike_id,
-    tweetId: dbObject.tweet_id,
-    userId: dbObject.user_id,
-    dateTime: dbObject.dateTime,
-  };
-};
-
 app.post("/register/", async (request, response) => {
   const { username, password, name, gender } = request.body;
   // check if user already exists with the same username
@@ -337,101 +328,6 @@ app.get(
   }
 );
 
-app.get("/tweets/:tweetId/", authenticateUser, async (request, response) => {
-  const { tweetId } = request.params;
-  const { username } = request;
-  const selectUserQuery = `
-    SELECT * FROM user WHERE username = '${username}';
-    `;
-  const dbUser = await database.get(selectUserQuery);
-  const getTweetQuery = `
-  SELECT * FROM tweet WHERE tweet_id = ${tweetId};
-  `;
-  const tweetInfo = await database.get(getTweetQuery);
-
-  const followingUsersQuery = `
-    SELECT following_user_id FROM follower 
-    WHERE follower_user_id = ${dbUser.user_id};
-  `;
-  const followingUsersObjectsList = await database.all(followingUsersQuery);
-  const followingUsersList = followingUsersObjectsList.map((object) => {
-    return object["following_user_id"];
-  });
-  if (!followingUsersList.includes(tweetInfo.user_id)) {
-    response.status(401);
-    response.send("Invalid Request");
-  } else {
-    const { tweet_id, date_time, tweet } = tweetInfo;
-    const getUnlikesQuery = `
-    SELECT COUNT(unlike_id) AS unlikes FROM unlike 
-    WHERE tweet_id = ${tweet_id} GROUP BY tweet_id;
-    `;
-    const unlikesObject = await database.get(getUnlikesQuery);
-    const getRepliesQuery = `
-    SELECT COUNT(reply_id) AS replies FROM reply 
-    WHERE tweet_id = ${tweet_id} GROUP BY tweet_id;
-    `;
-    const repliesObject = await database.get(getRepliesQuery);
-    response.send({
-      tweet,
-      unlikes: unlikesObject.unlikes,
-      replies: repliesObject.replies,
-      dateTime: date_time,
-    });
-  }
-});
-
-app.get(
-  "/tweets/:tweetId/unlikes/",
-  authenticateUser,
-  async (request, response) => {
-    const { tweetId } = request.params;
-    const { username } = request;
-    const selectUserQuery = `
-    SELECT * FROM user WHERE username = '${username}';
-    `;
-    const dbUser = await database.get(selectUserQuery);
-    const getTweetQuery = `
-  SELECT * FROM tweet WHERE tweet_id = ${tweetId};
-  `;
-    const tweetInfo = await database.get(getTweetQuery);
-
-    const followingUsersQuery = `
-    SELECT following_user_id FROM follower 
-    WHERE follower_user_id = ${dbUser.user_id};
-  `;
-    const followingUsersObjectsList = await database.all(followingUsersQuery);
-    const followingUsersList = followingUsersObjectsList.map((object) => {
-      return object["following_user_id"];
-    });
-    if (!followingUsersList.includes(tweetInfo.user_id)) {
-      response.status(401);
-      response.send("Invalid Request");
-    } else {
-      const { tweet_id, date_time } = tweetInfo;
-      const getUnlikesQuery = `
-        SELECT user_id FROM unlike 
-        WHERE tweet_id = ${tweet_id};
-        `;
-      const unlikedUserIdObjectsList = await database.all(getUnlikesQuery);
-      const unlikedUserIdsList = unlikedUserIdObjectsList.map((object) => {
-        return object.user_id;
-      });
-      const getUnlikedUsersQuery = `
-      SELECT username FROM user 
-      WHERE user_id IN (${unlikedUserIdsList});
-      `;
-      const unlikedUsersObjectsList = await database.all(getUnlikedUsersQuery);
-      const unlikedUsersList = unlikedUsersObjectsList.map((object) => {
-        return object.username;
-      });
-      response.send({
-        unlikes: unlikedUsersList,
-      });
-    }
-  }
-);
-
 app.get(
   "/tweets/:tweetId/replies/",
   authenticateUser,
@@ -513,30 +409,6 @@ app.get("/user/tweets/", authenticateUser, async (request, response) => {
       return {
         tweet: tweetObj.tweet,
         likes,
-        replies,
-        dateTime: tweetObj.date_time,
-
-  const getUnlikesQuery = `
-    SELECT COUNT(unlike_id) AS unlikes FROM unlike 
-    WHERE tweet_id IN (${tweetIdsList}) GROUP BY tweet_id
-    ORDER BY tweet_id;
-    `;
-  const unlikesObjectsList = await database.all(getUnlikesQuery);
-  const getRepliesQuery = `
-    SELECT COUNT(reply_id) AS replies FROM reply 
-    WHERE tweet_id IN (${tweetIdsList}) GROUP BY tweet_id
-    ORDER BY tweet_id;
-    `;
-  const repliesObjectsList = await database.all(getRepliesQuery);
-  response.send(
-    tweetObjectsList.map((tweetObj, index) => {
-      const unlikes = unlikesObjectsList[index] ? unlikesObjectsList[index].unlikes : 0;
-      const replies = repliesObjectsList[index]
-        ? repliesObjectsList[index].replies
-        : 0;
-      return {
-        tweet: tweetObj.tweet,
-        unlikes,
         replies,
         dateTime: tweetObj.date_time,
       };
